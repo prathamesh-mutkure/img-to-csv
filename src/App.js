@@ -1,18 +1,17 @@
 import { useRef, useState } from "react";
 import "./App.css";
-import { csvSample, csvTable } from "./file";
-import { Parser } from "@json2csv/plainjs";
-
 function App() {
   const [img, setImg] = useState();
   const imgRef = useRef();
   const [result, setResult] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+
   const API_ENDPOINTS = {
-    validate: "https://validator.extracttable.com/",
-    req: "https://trigger.extracttable.com/",
-    res: "https://getresult.extracttable.com/	",
+    validate: `${BACKEND_URL}/check-usage`,
+    processImage: `${BACKEND_URL}/process-image`,
+    download: `${BACKEND_URL}/download`,
   };
 
   const onImgClick = () => {
@@ -33,62 +32,29 @@ function App() {
   const onProcessHandler = async () => {
     if (isLoading || !img) return;
 
-    console.log("Process");
-
     setIsLoading(true);
 
     const formData = new FormData();
-    formData.append("input", img);
+    formData.append("file", img);
 
-    fetch(`${API_ENDPOINTS.req}`, {
+    fetch(`${API_ENDPOINTS.processImage}`, {
       method: "POST",
       body: formData,
-      headers: {
-        "x-api-key": process.env.REACT_APP_API_KEY,
-      },
     })
-      .then((res) => res.json())
+      .then((res) => {
+        console.log(res.body);
+        return res.json();
+      })
       .then((data) => {
         console.log(data);
-        setResult(data["Tables"][0]["TableJson"]);
+        setResult(data.file);
         setIsLoading(false);
       })
       .catch((err) => {
-        console.error(err);
+        console.error(`Error: ${err}`);
         setIsLoading(false);
       });
   };
-
-  // const onProcessHandler = async () => {
-  //   if (isLoading || !img) return;
-
-  //   setIsLoading(true);
-
-  //   const formData = new FormData();
-  //   formData.append("input", img);
-
-  //   fetch(`https://tempapi.proj.me/api/ZaggQUF07`)
-  //     .then((res) => res.json())
-  //     .then((data) => {
-  //       setResult(csvSample);
-
-  //       try {
-  //         // const opts = {};
-  //         // const parser = new Parser(opts);
-  //         // const csv = parser.parse(csvTable);
-  //         // console.log(csvTable);
-  //         // console.log(csv);
-  //       } catch (err) {
-  //         console.error(err);
-  //       }
-
-  //       setIsLoading(false);
-  //     })
-  //     .catch((err) => {
-  //       console.error(err);
-  //       setIsLoading(false);
-  //     });
-  // };
 
   return (
     <div className="App">
@@ -153,9 +119,11 @@ function App() {
         </div>
 
         <div>
-          {/* {csvFile && (
+          {result && (
             <a
-              href="/"
+              href={`${API_ENDPOINTS.download}/${result}`}
+              target="_blank"
+              rel="noreferrer"
               style={{
                 color: "white",
                 background: "#3f51b5",
@@ -163,35 +131,12 @@ function App() {
                 fontWeight: "bold",
                 border: "none",
                 margin: "1rem",
-                opacity: img && !isLoading ? 1 : 0.9,
-                cursor: img && !isLoading ? "pointer" : "not-allowed",
+                opacity: !isLoading ? 1 : 0.9,
+                cursor: !isLoading ? "pointer" : "not-allowed",
               }}
             >
               DOWNLOAD
             </a>
-          )} */}
-
-          {result && (
-            <table>
-              <thead>
-                {Object.values(Object.values(result)[0]).map((val) => (
-                  <th>{val}</th>
-                ))}
-              </thead>
-              <tbody>
-                {Object.values(result)
-                  .slice(1)
-                  .map((row) => {
-                    return (
-                      <tr>
-                        {Object.values(row).map((data) => (
-                          <td>{data}</td>
-                        ))}
-                      </tr>
-                    );
-                  })}
-              </tbody>
-            </table>
           )}
         </div>
       </div>
